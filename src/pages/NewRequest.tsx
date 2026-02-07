@@ -1,6 +1,9 @@
-import { AlertCircle, User, Cpu } from "lucide-react";
+import { AlertCircle, User, Cpu, Briefcase } from "lucide-react"; // <--- 1. Adicionei Briefcase
+import { useAuth } from "../contexts/AuthContext"; // <--- 2. Importei o contexto
 
 export function NewRequest() {
+  const { usersList } = useAuth(); // <--- 3. Peguei a lista de usuários
+
   return (
     <div className="p-8 ml-64 min-h-screen flex flex-col items-center justify-center">
       
@@ -48,6 +51,25 @@ export function NewRequest() {
                 <option>Impressora</option>
              </select>
           </div>
+
+          {/* --- NOVO CAMPO: ATRIBUIR TÉCNICO --- */}
+          <div className="mb-6">
+             <label className="text-xs font-bold text-gray-500 mb-2 block flex items-center gap-1">
+                <Briefcase size={14}/> Atribuir Técnico Responsável
+             </label>
+             <select className="w-full bg-gray-800 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary appearance-none">
+                <option value="">Selecione um técnico...</option>
+                {usersList
+                    .filter(u => u.role === 'TECH') // Filtra apenas quem é técnico
+                    .map(tech => (
+                        <option key={tech.id} value={tech.id}>
+                            {tech.name}
+                        </option>
+                    ))
+                }
+             </select>
+          </div>
+          {/* ------------------------------------ */}
 
           {/* Problema */}
           <div className="mb-8">

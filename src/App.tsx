@@ -4,6 +4,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { NewRequest } from "./pages/NewRequest";
 import { TechnicianPanel } from "./pages/TechnicianPanel"; // <--- Importei
 import { Reports } from "./pages/Reports"; // <--- Importei
+import { TeamManagement } from "./pages/TeamManagement";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
             <Route path="/nova-solicitacao" element={<NewRequest />} />
             <Route path="/painel-tecnico" element={<TechnicianPanel />} /> {/* <--- Rota Atualizada */}
             <Route path="/historico" element={<Reports />} /> {/* <--- Rota Atualizada */}
+            <Route path="/equipe" element={<TeamManagement />} />
           </Routes>
         </main>
       </div>
