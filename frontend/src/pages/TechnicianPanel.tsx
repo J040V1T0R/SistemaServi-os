@@ -17,13 +17,13 @@ export function TechnicianPanel() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [finishInputs, setFinishInputs] = useState<Record<string, { solution: string; value: string }>>({});
 
-  useEffect(() => {
-    let isActive = true;
+  const fetchOrders = () => {
+    setLoading(true);
     import('../api').then(({ getOrders }) => {
       getOrders()
         .then((data) => {
-          if (!isActive) return;
           const mapped: Order[] = (data || []).map((o: any) => {
             const status = o.status === 'Concluida' ? 'Concluído' : o.status;
             const equipment = [o.brand, o.model].filter(Boolean).join(' ') || o.equipType || o.serialNumber || 'Equipamento';
@@ -40,26 +40,50 @@ export function TechnicianPanel() {
           setError(null);
         })
         .catch((err: any) => {
-          if (!isActive) return;
           setError(err.message || 'Erro ao carregar ordens');
         })
         .finally(() => {
-          if (!isActive) return;
           setLoading(false);
         });
     });
+  };
 
-    return () => {
-      isActive = false;
-    };
+  useEffect(() => {
+    fetchOrders();
   }, []);
 
   const filteredOrders = user.role === "MANAGER" 
     ? orders 
     : orders.filter(order => order.techId === user.id);
 
-  const handleStatusChange = (id: string, newStatus: Order['status']) => {
-    setOrders(orders.map(order => order.id === id ? { ...order, status: newStatus } : order));
+  const handleStatusChange = async (id: string, newStatus: Order['status']) => {
+    try {
+      const { updateOrder } = await import('../api');
+      const now = new Date().toISOString();
+      const techId = user.role === 'TECH' ? user.id : undefined;
+
+      if (newStatus === 'Em Andamento') {
+        await updateOrder(id, { status: newStatus, startDate: now, technicianId: techId });
+      } else if (newStatus === 'Concluído') {
+        const input = finishInputs[id] || { solution: '', value: '' };
+        const parsedValue = input.value
+          ? Number(String(input.value).replace('.', '').replace(',', '.'))
+          : null;
+        await updateOrder(id, { status: newStatus, endDate: now, solution: input.solution, value: parsedValue, technicianId: techId });
+      }
+
+      setOrders(orders.map(order => order.id === id ? { ...order, status: newStatus } : order));
+      fetchOrders();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar ordem');
+    }
+  };
+
+  const updateFinishInput = (id: string, field: 'solution' | 'value', value: string) => {
+    setFinishInputs(prev => ({
+      ...prev,
+      [id]: { ...prev[id], [field]: value },
+    }));
   };
 
   return (
@@ -144,6 +168,8 @@ export function TechnicianPanel() {
                         placeholder="Descreva a solução técnica realizada..." 
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
                         rows={2}
+                        value={finishInputs[order.id]?.solution || ''}
+                        onChange={(e) => updateFinishInput(order.id, 'solution', e.target.value)}
                       />
                       <div className="flex gap-3">
                         <div className="relative w-1/3">
@@ -154,6 +180,8 @@ export function TechnicianPanel() {
                               type="text" 
                               placeholder="0,00" 
                               className="w-full pl-8 bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+                              value={finishInputs[order.id]?.value || ''}
+                              onChange={(e) => updateFinishInput(order.id, 'value', e.target.value)}
                             />
                         </div>
                         
