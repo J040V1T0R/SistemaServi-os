@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 // Tipos de Usuário
-export type UserRole = "MANAGER" | "TECH";
+export type UserRole = "TECH";
 
 interface User {
   id: string;
@@ -11,20 +11,20 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User;
+  user: User | null;
   switchUser: (userId: string) => void;
   usersList: User[];
 }
 
-const MANAGER_USER: User = { id: "manager-carlos", name: "Carlos (Gerente)", role: "MANAGER", avatar: "CN" };
+const DEFAULT_USER: User | null = null;
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(MANAGER_USER); // Começa como Gerente
+  const [user, setUser] = useState<User | null>(DEFAULT_USER);
   const [techUsers, setTechUsers] = useState<User[]>([]);
 
-  const usersList = useMemo(() => [MANAGER_USER, ...techUsers], [techUsers]);
+  const usersList = useMemo(() => [...techUsers], [techUsers]);
 
   useEffect(() => {
     let isActive = true;
@@ -65,10 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (!usersList.find(u => u.id === user.id)) {
-      setUser(MANAGER_USER);
+    if (user && !usersList.find(u => u.id === user.id)) {
+      setUser(null);
     }
-  }, [usersList, user.id]);
+  }, [usersList, user]);
 
   return (
     <AuthContext.Provider value={{ user, switchUser, usersList }}>
