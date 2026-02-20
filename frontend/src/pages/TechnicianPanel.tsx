@@ -1,25 +1,58 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Wrench, Play, CheckCircle, Clock, User, AlertTriangle, DollarSign } from "lucide-react"; // Adicionei DollarSign
 import { useAuth } from "../contexts/AuthContext";
 
 interface Order {
   id: string;
-  client: string;
+  clientCpf: string;
   equipment: string;
   issue: string;
   status: "Pendente" | "Em Andamento" | "Concluído";
-  techId: string;
+  techId?: string | null;
 }
 
 export function TechnicianPanel() {
   const { user } = useAuth();
 
-  const [orders, setOrders] = useState<Order[]>([
-    { id: "1001", client: "Maria Silva", equipment: "Dell Inspiron 15", issue: "Não liga, luz pisca laranja", status: "Pendente", techId: "2" },
-    { id: "1002", client: "Escritório Contábil", equipment: "Epson L3150", issue: "Atolamento de papel constante", status: "Em Andamento", techId: "2" },
-    { id: "1003", client: "Pedro Santos", equipment: "PC Gamer", issue: "Tela azul ao abrir jogos", status: "Pendente", techId: "3" },
-    { id: "1004", client: "Padaria Central", equipment: "Monitor LG", issue: "Sem sinal", status: "Concluído", techId: "3" },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    import('../api').then(({ getOrders }) => {
+      getOrders()
+        .then((data) => {
+          if (!isActive) return;
+          const mapped: Order[] = (data || []).map((o: any) => {
+            const status = o.status === 'Concluida' ? 'Concluído' : o.status;
+            const equipment = [o.brand, o.model].filter(Boolean).join(' ') || o.equipType || o.serialNumber || 'Equipamento';
+            return {
+              id: String(o.id ?? ''),
+              clientCpf: o.clientCpf || '---',
+              equipment,
+              issue: o.problemDescription || '---',
+              status: status || 'Pendente',
+              techId: o.technicianId || null,
+            };
+          });
+          setOrders(mapped);
+          setError(null);
+        })
+        .catch((err: any) => {
+          if (!isActive) return;
+          setError(err.message || 'Erro ao carregar ordens');
+        })
+        .finally(() => {
+          if (!isActive) return;
+          setLoading(false);
+        });
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const filteredOrders = user.role === "MANAGER" 
     ? orders 
@@ -45,7 +78,15 @@ export function TechnicianPanel() {
         </div>
       </header>
 
-      {filteredOrders.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <p className="text-gray-400 font-medium">Carregando ordens...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <p className="text-red-500 font-medium">{error}</p>
+        </div>
+      ) : filteredOrders.length === 0 ? (
          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
              <p className="text-gray-400 font-medium">Nenhuma tarefa encontrada.</p>
          </div>
@@ -71,7 +112,7 @@ export function TechnicianPanel() {
               {/* Título e Cliente */}
               <h3 className="text-lg font-bold text-gray-800 mb-1">{order.equipment}</h3>
               <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 font-medium">
-                <User size={14} /> {order.client}
+                <User size={14} /> CPF: {order.clientCpf}
               </div>
 
               {/* Problema */}

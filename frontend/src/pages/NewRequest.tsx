@@ -6,8 +6,13 @@ export function NewRequest() {
   const { usersList } = useAuth();
   const [form, setForm] = React.useState({
     clientCpf: '',
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
     serialNumber: '',
     equipType: '',
+    brand: '',
+    model: '',
     technicianId: '',
     problemDescription: '',
   });
@@ -27,7 +32,18 @@ export function NewRequest() {
       const { createOrder } = await import('../api');
       const result = await createOrder(form);
       setStatusMsg('Ordem criada com sucesso! ID: ' + result.id);
-      setForm({ clientCpf: '', serialNumber: '', equipType: '', technicianId: '', problemDescription: '' });
+      setForm({
+        clientCpf: '',
+        clientName: '',
+        clientPhone: '',
+        clientEmail: '',
+        serialNumber: '',
+        equipType: '',
+        brand: '',
+        model: '',
+        technicianId: '',
+        problemDescription: '',
+      });
     } catch (err: any) {
       setStatusMsg('Erro: ' + err.message);
     } finally {
@@ -53,6 +69,9 @@ export function NewRequest() {
               {statusMsg}
             </div>
           )}
+          <p className="text-xs text-gray-500 mb-6">
+            Informe o CPF para usar um cliente existente. Para cadastrar novo cliente, preencha nome, telefone e email.
+          </p>
           <div className="grid grid-cols-2 gap-6 mb-6">
             {/* CPF */}
             <div>
@@ -83,6 +102,53 @@ export function NewRequest() {
                 className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
               />
             </div>
+
+            {/* Nome */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <User size={14}/> Nome do Cliente
+              </label>
+              <input
+                name="clientName"
+                value={form.clientName}
+                onChange={handleChange}
+                type="text"
+                placeholder="Nome completo"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Telefone */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <User size={14}/> Telefone
+              </label>
+              <input
+                name="clientPhone"
+                value={form.clientPhone}
+                onChange={handleChange}
+                type="text"
+                placeholder="(00) 00000-0000"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <User size={14}/> Email
+              </label>
+              <input
+                name="clientEmail"
+                value={form.clientEmail}
+                onChange={handleChange}
+                type="email"
+                placeholder="email@exemplo.com"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6 mb-6">
@@ -102,6 +168,23 @@ export function NewRequest() {
                 </select>
             </div>
 
+            {/* Marca */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <Cpu size={14}/> Marca
+              </label>
+              <input
+                name="brand"
+                value={form.brand}
+                onChange={handleChange}
+                type="text"
+                placeholder="Marca do equipamento"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 mb-6">
             {/* Atribuir Técnico */}
             <div>
                 <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
@@ -121,6 +204,21 @@ export function NewRequest() {
                         ))
                     }
                 </select>
+            </div>
+
+            {/* Modelo */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <Cpu size={14}/> Modelo
+              </label>
+              <input
+                name="model"
+                value={form.model}
+                onChange={handleChange}
+                type="text"
+                placeholder="Modelo do equipamento"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
             </div>
           </div>
 
