@@ -424,6 +424,88 @@ apiRouter.post('/orders', async (req, res) => {
   }
 });
 
+// update order
+apiRouter.put('/orders/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status, startDate, endDate, solution, value, technicianId, problemDescription } = req.body || {};
+
+  const normalizeValue = (val) => {
+    if (val === undefined || val === null || val === '') return null;
+    if (typeof val === 'number') return val;
+    const cleaned = String(val).replace(/[R$\s]/g, '').replace(',', '.');
+    const parsed = Number(cleaned);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
+
+  const payload = {
+    status: status || null,
+    startDate: startDate || null,
+    endDate: endDate || null,
+    solution: solution || null,
+    value: normalizeValue(value),
+    technicianId: technicianId || null,
+    problemDescription: problemDescription || null,
+  };
+
+  if (usePg && pool) {
+    try {
+      const q = `UPDATE ordem_servico
+                 SET status = COALESCE($1, status),
+                     data_inicio = COALESCE($2, data_inicio),
+                     data_fim = COALESCE($3, data_fim),
+                     solucao = COALESCE($4, solucao),
+                     valor = COALESCE($5, valor),
+                     pis_tecnico = COALESCE($6, pis_tecnico),
+                     problema = COALESCE($7, problema)
+                 WHERE cod_os = $8
+                 RETURNING cod_os`;
+      const values = [
+        payload.status,
+        payload.startDate,
+        payload.endDate,
+        payload.solution,
+        payload.value,
+        payload.technicianId,
+        payload.problemDescription,
+        id,
+      ];
+      const result = await pool.query(q, values);
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'order not found' });
+      }
+      return res.json({ id: result.rows[0].cod_os });
+    } catch (err) {
+      console.error('Error updating order:', err.message);
+      return res.status(500).json({ error: 'failed to update order' });
+    }
+  }
+
+  try {
+    await db.read();
+    db.data ||= { orders: [] };
+    const idx = db.data.orders.findIndex(o => String(o.id) === String(id));
+    if (idx < 0) {
+      return res.status(404).json({ error: 'order not found' });
+    }
+    const existing = db.data.orders[idx];
+    db.data.orders[idx] = {
+      ...existing,
+      status: payload.status ?? existing.status,
+      startDate: payload.startDate ?? existing.startDate,
+      endDate: payload.endDate ?? existing.endDate,
+      solution: payload.solution ?? existing.solution,
+      value: payload.value ?? existing.value,
+      technicianId: payload.technicianId ?? existing.technicianId,
+      problemDescription: payload.problemDescription ?? existing.problemDescription,
+    };
+    await db.write();
+    return res.json({ id });
+  } catch (err) {
+    console.error('Error updating order (lowdb):', err.message);
+    return res.status(500).json({ error: 'failed to update order' });
+  }
+});
+
 // update order status/fields
 apiRouter.patch('/orders/:id', async (req, res) => {
   const { id } = req.params;

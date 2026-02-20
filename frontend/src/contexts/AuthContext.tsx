@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 
 // Tipos de Usuário
 export type UserRole = "TECH";
@@ -14,6 +14,9 @@ interface AuthContextType {
   user: User | null;
   switchUser: (userId: string) => void;
   usersList: User[];
+  loadingTechs: boolean;
+  techError: string | null;
+  refreshTechnicians: () => void;
 }
 
 const DEFAULT_USER: User | null = null;
@@ -23,11 +26,15 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(DEFAULT_USER);
   const [techUsers, setTechUsers] = useState<User[]>([]);
+  const [loadingTechs, setLoadingTechs] = useState(false);
+  const [techError, setTechError] = useState<string | null>(null);
 
   const usersList = useMemo(() => [...techUsers], [techUsers]);
 
-  useEffect(() => {
+  const refreshTechnicians = useCallback(() => {
     let isActive = true;
+    setLoadingTechs(true);
+    setTechError(null);
     import('../api').then(({ getTechnicians }) => {
       getTechnicians()
         .then((rows: any[]) => {
@@ -48,16 +55,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             };
           });
           setTechUsers(mapped);
+          setLoadingTechs(false);
         })
-        .catch(() => {
+        .catch((err: any) => {
           if (!isActive) return;
           setTechUsers([]);
+          setLoadingTechs(false);
+          setTechError(err?.message || 'Falha ao carregar tecnicos');
         });
     });
+    // best-effort cancel for in-flight promise
     return () => {
       isActive = false;
     };
   }, []);
+
+  useEffect(() => {
+    refreshTechnicians();
+  }, [refreshTechnicians]);
 
   const switchUser = (userId: string) => {
     const found = usersList.find(u => u.id === userId);
@@ -71,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [usersList, user]);
 
   return (
-    <AuthContext.Provider value={{ user, switchUser, usersList }}>
+    <AuthContext.Provider value={{ user, switchUser, usersList, loadingTechs, techError, refreshTechnicians }}>
       {children}
     </AuthContext.Provider>
   );
