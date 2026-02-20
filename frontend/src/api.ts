@@ -26,3 +26,24 @@ export async function createOrder(orderData: any) {
   }
   return res.json();
 }
+
+// fetch technicians
+export async function getTechnicians() {
+  const res = await fetch(`${API_BASE}/api/technicians`);
+  if (!res.ok) throw new Error('Failed to load technicians');
+  return res.json();
+}
+
+// update order fields
+export async function updateOrder(id: string, updates: any) {
+  const res = await fetch(`${API_BASE}/api/orders/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || 'Failed to update order');
+  }
+  return res.json();
+}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 // Tipos de Usuário
 export type UserRole = "MANAGER" | "TECH";
@@ -16,25 +16,62 @@ interface AuthContextType {
   usersList: User[];
 }
 
-// Lista de Usuários Fictícios para o Vídeo
-const MOCK_USERS: User[] = [
-  { id: "1", name: "Carlos (Gerente)", role: "MANAGER", avatar: "CN" },
-  { id: "2", name: "João (Técnico)", role: "TECH", avatar: "JD" },
-  { id: "3", name: "Ana (Técnica)", role: "TECH", avatar: "AL" },
-];
+const MANAGER_USER: User = { id: "manager-carlos", name: "Carlos (Gerente)", role: "MANAGER", avatar: "CN" };
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(MOCK_USERS[0]); // Começa como Gerente
+  const [user, setUser] = useState<User>(MANAGER_USER); // Começa como Gerente
+  const [techUsers, setTechUsers] = useState<User[]>([]);
+
+  const usersList = useMemo(() => [MANAGER_USER, ...techUsers], [techUsers]);
+
+  useEffect(() => {
+    let isActive = true;
+    import('../api').then(({ getTechnicians }) => {
+      getTechnicians()
+        .then((rows: any[]) => {
+          if (!isActive) return;
+          const mapped = (rows || []).map((t) => {
+            const initials = String(t.name || '')
+              .split(' ')
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((p: string) => p[0])
+              .join('')
+              .toUpperCase();
+            return {
+              id: String(t.id),
+              name: String(t.name),
+              role: "TECH" as const,
+              avatar: initials || "TE",
+            };
+          });
+          setTechUsers(mapped);
+        })
+        .catch(() => {
+          if (!isActive) return;
+          setTechUsers([]);
+        });
+    });
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const switchUser = (userId: string) => {
-    const found = MOCK_USERS.find(u => u.id === userId);
+    const found = usersList.find(u => u.id === userId);
     if (found) setUser(found);
   };
 
+  useEffect(() => {
+    if (!usersList.find(u => u.id === user.id)) {
+      setUser(MANAGER_USER);
+    }
+  }, [usersList, user.id]);
+
   return (
-    <AuthContext.Provider value={{ user, switchUser, usersList: MOCK_USERS }}>
+    <AuthContext.Provider value={{ user, switchUser, usersList }}>
       {children}
     </AuthContext.Provider>
   );

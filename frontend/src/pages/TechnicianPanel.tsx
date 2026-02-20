@@ -1,32 +1,89 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Wrench, Play, CheckCircle, Clock, User, AlertTriangle, DollarSign } from "lucide-react"; // Adicionei DollarSign
 import { useAuth } from "../contexts/AuthContext";
 
 interface Order {
   id: string;
-  client: string;
+  clientCpf: string;
   equipment: string;
   issue: string;
   status: "Pendente" | "Em Andamento" | "Concluído";
-  techId: string;
+  techId?: string | null;
 }
 
 export function TechnicianPanel() {
   const { user } = useAuth();
 
-  const [orders, setOrders] = useState<Order[]>([
-    { id: "1001", client: "Maria Silva", equipment: "Dell Inspiron 15", issue: "Não liga, luz pisca laranja", status: "Pendente", techId: "2" },
-    { id: "1002", client: "Escritório Contábil", equipment: "Epson L3150", issue: "Atolamento de papel constante", status: "Em Andamento", techId: "2" },
-    { id: "1003", client: "Pedro Santos", equipment: "PC Gamer", issue: "Tela azul ao abrir jogos", status: "Pendente", techId: "3" },
-    { id: "1004", client: "Padaria Central", equipment: "Monitor LG", issue: "Sem sinal", status: "Concluído", techId: "3" },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [finishInputs, setFinishInputs] = useState<Record<string, { solution: string; value: string }>>({});
+
+  const fetchOrders = () => {
+    setLoading(true);
+    import('../api').then(({ getOrders }) => {
+      getOrders()
+        .then((data) => {
+          const mapped: Order[] = (data || []).map((o: any) => {
+            const status = o.status === 'Concluida' ? 'Concluído' : o.status;
+            const equipment = [o.brand, o.model].filter(Boolean).join(' ') || o.equipType || o.serialNumber || 'Equipamento';
+            return {
+              id: String(o.id ?? ''),
+              clientCpf: o.clientCpf || '---',
+              equipment,
+              issue: o.problemDescription || '---',
+              status: status || 'Pendente',
+              techId: o.technicianId || null,
+            };
+          });
+          setOrders(mapped);
+          setError(null);
+        })
+        .catch((err: any) => {
+          setError(err.message || 'Erro ao carregar ordens');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    });
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const filteredOrders = user.role === "MANAGER" 
     ? orders 
     : orders.filter(order => order.techId === user.id);
 
-  const handleStatusChange = (id: string, newStatus: Order['status']) => {
-    setOrders(orders.map(order => order.id === id ? { ...order, status: newStatus } : order));
+  const handleStatusChange = async (id: string, newStatus: Order['status']) => {
+    try {
+      const { updateOrder } = await import('../api');
+      const now = new Date().toISOString();
+      const techId = user.role === 'TECH' ? user.id : undefined;
+
+      if (newStatus === 'Em Andamento') {
+        await updateOrder(id, { status: newStatus, startDate: now, technicianId: techId });
+      } else if (newStatus === 'Concluído') {
+        const input = finishInputs[id] || { solution: '', value: '' };
+        const parsedValue = input.value
+          ? Number(String(input.value).replace('.', '').replace(',', '.'))
+          : null;
+        await updateOrder(id, { status: newStatus, endDate: now, solution: input.solution, value: parsedValue, technicianId: techId });
+      }
+
+      setOrders(orders.map(order => order.id === id ? { ...order, status: newStatus } : order));
+      fetchOrders();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar ordem');
+    }
+  };
+
+  const updateFinishInput = (id: string, field: 'solution' | 'value', value: string) => {
+    setFinishInputs(prev => ({
+      ...prev,
+      [id]: { ...prev[id], [field]: value },
+    }));
   };
 
   return (
@@ -45,7 +102,15 @@ export function TechnicianPanel() {
         </div>
       </header>
 
-      {filteredOrders.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <p className="text-gray-400 font-medium">Carregando ordens...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <p className="text-red-500 font-medium">{error}</p>
+        </div>
+      ) : filteredOrders.length === 0 ? (
          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
              <p className="text-gray-400 font-medium">Nenhuma tarefa encontrada.</p>
          </div>
@@ -71,7 +136,7 @@ export function TechnicianPanel() {
               {/* Título e Cliente */}
               <h3 className="text-lg font-bold text-gray-800 mb-1">{order.equipment}</h3>
               <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 font-medium">
-                <User size={14} /> {order.client}
+                <User size={14} /> CPF: {order.clientCpf}
               </div>
 
               {/* Problema */}
@@ -103,6 +168,8 @@ export function TechnicianPanel() {
                         placeholder="Descreva a solução técnica realizada..." 
                         className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
                         rows={2}
+                        value={finishInputs[order.id]?.solution || ''}
+                        onChange={(e) => updateFinishInput(order.id, 'solution', e.target.value)}
                       />
                       <div className="flex gap-3">
                         <div className="relative w-1/3">
@@ -113,6 +180,8 @@ export function TechnicianPanel() {
                               type="text" 
                               placeholder="0,00" 
                               className="w-full pl-8 bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+                              value={finishInputs[order.id]?.value || ''}
+                              onChange={(e) => updateFinishInput(order.id, 'value', e.target.value)}
                             />
                         </div>
                         
