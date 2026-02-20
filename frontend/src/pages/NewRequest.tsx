@@ -11,6 +11,7 @@ export function NewRequest() {
     clientEmail: '',
     serialNumber: '',
     equipType: '',
+    otherEquipType: '',
     brand: '',
     model: '',
     technicianId: '',
@@ -30,7 +31,11 @@ export function NewRequest() {
     setSubmitting(true);
     try {
       const { createOrder } = await import('../api');
-      const result = await createOrder(form);
+      const payload = {
+        ...form,
+        equipType: form.equipType === 'Outro' ? form.otherEquipType : form.equipType,
+      };
+      const result = await createOrder(payload);
       setStatusMsg('Ordem criada com sucesso! ID: ' + result.id);
       setForm({
         clientCpf: '',
@@ -39,6 +44,7 @@ export function NewRequest() {
         clientEmail: '',
         serialNumber: '',
         equipType: '',
+        otherEquipType: '',
         brand: '',
         model: '',
         technicianId: '',
@@ -73,38 +79,8 @@ export function NewRequest() {
             Informe o CPF para usar um cliente existente. Para cadastrar novo cliente, preencha nome, telefone e email.
           </p>
           <div className="grid grid-cols-2 gap-6 mb-6">
-            {/* CPF */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
-                <User size={14}/> CPF do Cliente
-              </label>
-              <input 
-                name="clientCpf"
-                value={form.clientCpf}
-                onChange={handleChange}
-                type="text" 
-                placeholder="000.000.000-00" 
-                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
-              />
-            </div>
-
-            {/* Série */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
-                <Cpu size={14}/> Nº de Série
-              </label>
-              <input 
-                name="serialNumber"
-                value={form.serialNumber}
-                onChange={handleChange}
-                type="text" 
-                placeholder="SN-12345678" 
-                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
-              />
-            </div>
-
             {/* Nome */}
-            <div>
+            <div className="col-span-2">
               <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
                 <User size={14}/> Nome do Cliente
               </label>
@@ -120,6 +96,21 @@ export function NewRequest() {
           </div>
 
           <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* CPF */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <User size={14}/> CPF do Cliente
+              </label>
+              <input 
+                name="clientCpf"
+                value={form.clientCpf}
+                onChange={handleChange}
+                type="text" 
+                placeholder="000.000.000-00" 
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
+            </div>
+
             {/* Telefone */}
             <div>
               <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
@@ -134,7 +125,9 @@ export function NewRequest() {
                 className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-6 mb-6">
             {/* Email */}
             <div>
               <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
@@ -149,9 +142,7 @@ export function NewRequest() {
                 className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
             {/* Tipo Equipamento */}
             <div>
                 <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Tipo de Equipamento</label>
@@ -165,7 +156,39 @@ export function NewRequest() {
                     <option>Notebook</option>
                     <option>Desktop</option>
                     <option>Impressora</option>
+                    <option>Outro</option>
                 </select>
+            </div>
+          </div>
+
+          {form.equipType === 'Outro' && (
+            <div className="mb-6">
+              <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">Outro tipo</label>
+              <input
+                name="otherEquipType"
+                value={form.otherEquipType}
+                onChange={handleChange}
+                type="text"
+                placeholder="Descreva o tipo de equipamento"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Série */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <Cpu size={14}/> Nº de Série
+              </label>
+              <input 
+                name="serialNumber"
+                value={form.serialNumber}
+                onChange={handleChange}
+                type="text" 
+                placeholder="SN-12345678" 
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
             </div>
 
             {/* Marca */}
@@ -185,6 +208,21 @@ export function NewRequest() {
           </div>
 
           <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Modelo */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
+                <Cpu size={14}/> Modelo
+              </label>
+              <input
+                name="model"
+                value={form.model}
+                onChange={handleChange}
+                type="text"
+                placeholder="Modelo do equipamento"
+                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
+              />
+            </div>
+
             {/* Atribuir Técnico */}
             <div>
                 <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
@@ -204,21 +242,6 @@ export function NewRequest() {
                         ))
                     }
                 </select>
-            </div>
-
-            {/* Modelo */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1 uppercase tracking-wider">
-                <Cpu size={14}/> Modelo
-              </label>
-              <input
-                name="model"
-                value={form.model}
-                onChange={handleChange}
-                type="text"
-                placeholder="Modelo do equipamento"
-                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl p-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white transition-all"
-              />
             </div>
           </div>
 

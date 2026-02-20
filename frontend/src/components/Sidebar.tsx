@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext"; // <--- Importe o hook
 
 export function Sidebar() {
   const location = useLocation();
-  const { user, switchUser, usersList } = useAuth(); // <--- Use o hook
+  const { user, switchUser, usersList, techError } = useAuth();
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -45,6 +45,12 @@ export function Sidebar() {
             <option value="">Selecione um técnico...</option>
             {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
+
+        {techError && (
+          <p className="text-[10px] text-red-500 mb-3">
+            {techError}
+          </p>
+        )}
 
         {user ? (
           <div className="bg-blue-50 p-4 rounded-xl flex items-center gap-3">
