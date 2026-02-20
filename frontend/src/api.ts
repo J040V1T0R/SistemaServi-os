@@ -26,3 +26,10 @@ export async function createOrder(orderData: any) {
   }
   return res.json();
 }
+
+// fetch technicians
+export async function getTechnicians() {
+  const res = await fetch(`${API_BASE}/api/technicians`);
+  if (!res.ok) throw new Error('Failed to load technicians');
+  return res.json();
+}

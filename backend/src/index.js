@@ -104,6 +104,27 @@ async function listOrders() {
   return fallback;
 }
 
+async function listTechnicians() {
+  if (usePg && pool) {
+    const q = `SELECT pis, nome, telefone, especialidade
+               FROM tecnico
+               ORDER BY nome ASC`;
+    try {
+      const res = await pool.query(q);
+      return res.rows.map(r => ({
+        id: r.pis,
+        name: r.nome,
+        phone: r.telefone,
+        specialty: r.especialidade,
+      }));
+    } catch (err) {
+      console.error('Error querying technicians:', err.message);
+      throw err;
+    }
+  }
+  return [];
+}
+
 async function upsertEquipment(e) {
   // e: { serialNumber, equipType, brand, model, clientCpf }
   if (usePg && pool) {
@@ -198,6 +219,17 @@ apiRouter.get('/orders', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'failed to list orders' });
+  }
+});
+
+// list technicians
+apiRouter.get('/technicians', async (req, res) => {
+  try {
+    const all = await listTechnicians();
+    res.json(all);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to list technicians' });
   }
 });
 
