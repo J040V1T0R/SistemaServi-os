@@ -48,6 +48,13 @@ export async function getTechnicians() {
   return res.json();
 }
 
+// get total billing for completed orders
+export async function getBilling() {
+  const res = await fetch(`${API_BASE}/api/billing`);
+  if (!res.ok) throw new Error('Failed to load billing');
+  return res.json();
+}
+
 // add technician
 export async function addTechnician(data: any) {
   console.log('📤 API addTechnician() recebeu:', data);

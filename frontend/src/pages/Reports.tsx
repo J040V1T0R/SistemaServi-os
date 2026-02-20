@@ -7,6 +7,7 @@ export function Reports() {
     const [allOrders, setAllOrders] = React.useState<any[]>([]);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [statusFilter, setStatusFilter] = React.useState('');
+    const [billing, setBilling] = React.useState<any>({ total: '0.00', formatted: 'R$ 0,00' });
     const [editingOrder, setEditingOrder] = React.useState<any | null>(null);
     const [savingEdit, setSavingEdit] = React.useState(false);
     const [editForm, setEditForm] = React.useState({
@@ -20,8 +21,9 @@ export function Reports() {
     });
 
     React.useEffect(() => {
-        import('../api').then(({ getOrders }) => {
+        import('../api').then(({ getOrders, getBilling }) => {
             getOrders().then(setAllOrders).catch(console.error);
+            getBilling().then(setBilling).catch(console.error);
         });
     }, []);
 
@@ -61,17 +63,6 @@ export function Reports() {
         return idText.includes(term) || nameText.includes(term) || dateText.includes(term) || equipText.includes(term);
     });
 
-    const totalBilling = React.useMemo(() => {
-        return orders
-            .filter(o => normalizeStatus(o.status) === 'Concluído')
-            .reduce((sum, o) => {
-                const valueStr = String(o.value || '0').replace(/[R$\s]/g, '').replace(',', '.');
-                const num = parseFloat(valueStr) || 0;
-                return sum + num;
-            }, 0)
-            .toFixed(2);
-    }, [orders]);
-
     const openEdit = (order: any) => {
         setEditingOrder(order);
         setEditForm({
@@ -98,7 +89,7 @@ export function Reports() {
         if (!editingOrder) return;
         setSavingEdit(true);
         try {
-            const { updateOrder, getOrders } = await import('../api');
+            const { updateOrder, getOrders, getBilling } = await import('../api');
             await updateOrder(editingOrder.id, {
                 status: editForm.status || null,
                 value: editForm.value || null,
@@ -110,6 +101,8 @@ export function Reports() {
             });
             const updated = await getOrders();
             setAllOrders(updated || []);
+            const updatedBilling = await getBilling();
+            setBilling(updatedBilling);
             closeEdit();
         } catch (err) {
             console.error(err);
@@ -146,7 +139,7 @@ export function Reports() {
                         </div>
                         <div>
                                 <p className="text-xs text-gray-500 font-bold uppercase">Faturamento (Concluídos)</p>
-                                <p className="text-2xl font-bold text-gray-800">R$ {totalBilling.replace('.', ',')}</p>
+                                <p className="text-2xl font-bold text-gray-800">{billing.formatted}</p>
                         </div>
                  </div>
                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">

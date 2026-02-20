@@ -35,15 +35,13 @@ function formatRelativeTime(value: any) {
 }
 
 export function Dashboard() {
-  const [serverStatus, setServerStatus] = React.useState<string | null>(null);
   const [orders, setOrders] = React.useState<any[]>([]);
+  const [billing, setBilling] = React.useState<any>({ total: '0.00', formatted: 'R$ 0,00' });
 
   React.useEffect(() => {
-    import('../api').then(({ getStatus, getOrders }) => {
-      getStatus()
-        .then(data => setServerStatus(data.status))
-        .catch(() => setServerStatus('error'));
+    import('../api').then(({ getOrders, getBilling }) => {
       getOrders().then(setOrders).catch(console.error);
+      getBilling().then(setBilling).catch(console.error);
     });
   }, []);
 
@@ -98,10 +96,7 @@ export function Dashboard() {
         <StatusCard icon={Clock} label="PENDENTES" value={orders.filter(o => normalizeStatus(o.status) === 'Pendente').length.toString()} color="text-orange-500" bg="bg-orange-50" />
         <StatusCard icon={Activity} label="EM EXECUÇÃO" value={orders.filter(o => normalizeStatus(o.status) === 'Em Andamento').length.toString()} color="text-blue-500" bg="bg-blue-50" />
         <StatusCard icon={CheckCircle} label="FINALIZADOS" value={orders.filter(o => normalizeStatus(o.status) === 'Concluído').length.toString()} color="text-green-500" bg="bg-green-50" />
-        <StatusCard icon={TrendingUp} label="FATURAMENTO" value={`R$ ${orders.reduce((sum, o) => {
-            const num = parseFloat(String(o.value ?? '0').replace(/[R$ ,]/g, '')) || 0;
-            return sum + num;
-          }, 0)}`} color="text-purple-500" bg="bg-purple-50" />
+        <StatusCard icon={TrendingUp} label="FATURAMENTO" value={billing.formatted} color="text-purple-500" bg="bg-purple-50" />
       </div>
 
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm min-h-[20rem]">

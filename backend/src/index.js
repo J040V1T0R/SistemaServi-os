@@ -140,6 +140,38 @@ async function listTechnicians() {
   return [];
 }
 
+async function getBilling() {
+  if (usePg && pool) {
+    const q = `SELECT COALESCE(SUM(CAST(valor AS DECIMAL(10,2))), 0) as total_billing,
+                      COUNT(*) as completed_count
+               FROM ordem_servico
+               WHERE LOWER(status) IN ('concluído', 'concluida', 'concluido')`;
+    try {
+      const res = await pool.query(q);
+      const total = parseFloat(res.rows[0].total_billing) || 0;
+      return {
+        total: total.toFixed(2),
+        formatted: `R$ ${total.toFixed(2).replace('.', ',')}`
+      };
+    } catch (err) {
+      console.error('❌ Error querying billing:', err.message);
+      throw err;
+    }
+  }
+  // lowdb fallback
+  const total = (db.data?.orders || [])
+    .filter(o => o.status === 'Concluído' || o.status === 'Concluida' || o.status === 'Concluido')
+    .reduce((sum, o) => {
+      const valueStr = String(o.value || '0').replace(/[R$\s]/g, '').replace(',', '.');
+      const num = parseFloat(valueStr) || 0;
+      return sum + num;
+    }, 0);
+  return {
+    total: total.toFixed(2),
+    formatted: `R$ ${total.toFixed(2).replace('.', ',')}`
+  };
+}
+
 async function upsertEquipment(e) {
   // e: { serialNumber, equipType, brand, model, clientCpf }
   if (usePg && pool) {
@@ -292,6 +324,17 @@ apiRouter.get('/technicians', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'failed to list technicians' });
+  }
+});
+
+// get total billing for completed orders
+apiRouter.get('/billing', async (req, res) => {
+  try {
+    const billing = await getBilling();
+    res.json(billing);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'failed to calculate billing' });
   }
 });
 
