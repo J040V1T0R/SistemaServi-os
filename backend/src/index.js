@@ -11,7 +11,22 @@ const PORT = process.env.PORT || 3001;
 
 // middleware
 app.use(cors());
-app.use(express.json());
+
+// Custom JSON parser que preserva strings
+app.use(express.json({
+  reviver: (key, value) => {
+    // Preservar valores como string se tiverem aspas no JSON original
+    return value;
+  }
+}));
+
+// Middleware para logar dados recebidos
+app.use((req, res, next) => {
+  if (req.path === '/api/technicians' && req.method === 'POST') {
+    console.log('📨 BODY RECEBIDO APÓS PARSE:', JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
 
 // simple route
 app.get('/', (req, res) => {
@@ -278,6 +293,86 @@ apiRouter.get('/technicians', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'failed to list technicians' });
   }
+});
+
+// add technician
+apiRouter.post('/technicians', async (req, res) => {
+  console.log('='.repeat(60));
+  console.log('📨 REQUEST RECEBIDO');
+  console.log('Body completo:', JSON.stringify(req.body, null, 2));
+  
+  let { pis, name, phone, specialty } = req.body;
+  
+  console.log('🔍 TIPOS ORIGINAIS:', {
+    pisType: typeof pis,
+    pisValue: pis,
+    pisValueOf: Object.prototype.toString.call(pis),
+  });
+  
+  // Garantir que PIS é string
+  pis = String(pis).trim();
+  name = String(name).trim();
+  phone = String(phone).trim();
+  specialty = String(specialty).trim();
+  
+  console.log('✏️ APÓS CONVERSÃO:', { pis, pisLength: pis.length, name, phone, specialty });
+  
+  if (!pis || !name || !phone || !specialty) {
+    console.error('❌ Campos ausentes');
+    return res.status(400).json({ error: 'missing required fields: pis, name, phone, specialty' });
+  }
+  if (pis.length !== 11 || !/^\d+$/.test(pis)) {
+    console.error('❌ PIS inválido:', { pis, length: pis.length, isDigits: /^\d+$/.test(pis) });
+    return res.status(400).json({ error: 'PIS must be exactly 11 digits' });
+  }
+  if (usePg && pool) {
+    try {
+      console.log('💾 INSERINDO NO BANCO:', { pis, name, phone, specialty });
+      const q = `INSERT INTO tecnico (pis, nome, telefone, especialidade) VALUES ($1, $2, $3, $4) RETURNING pis, nome, telefone, especialidade`;
+      const res2 = await pool.query(q, [pis, name, phone, specialty]);
+      const salvo = res2.rows[0];
+      console.log('✅ SALVO COM SUCESSO:', { 
+        pisRetornado: salvo.pis, 
+        pisLength: (salvo.pis || '').length,
+        nome: salvo.nome 
+      });
+      console.log('='.repeat(60));
+      return res.status(201).json({ id: salvo.pis, name: salvo.nome, phone: salvo.telefone, specialty: salvo.especialidade });
+    } catch (err) {
+      console.error('❌ ERRO AO INSERIR:', err.message, err.detail);
+      console.log('='.repeat(60));
+      if (err.message.includes('duplicate key')) {
+        return res.status(400).json({ error: 'PIS already exists' });
+      }
+      return res.status(500).json({ error: 'failed to create technician: ' + err.message });
+    }
+  }
+  console.log('='.repeat(60));
+  return res.status(400).json({ error: 'database not configured' });
+});
+
+// delete technician
+apiRouter.delete('/technicians/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ error: 'missing technician id' });
+  }
+  if (usePg && pool) {
+    try {
+      // Delete related orders first
+      await pool.query('DELETE FROM ordem_servico WHERE pis_tecnico = $1', [id]);
+      // Then delete the technician
+      const result = await pool.query('DELETE FROM tecnico WHERE pis = $1', [id]);
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'technician not found' });
+      }
+      return res.json({ message: 'technician deleted' });
+    } catch (err) {
+      console.error('Error deleting technician:', err.message);
+      return res.status(500).json({ error: 'failed to delete technician' });
+    }
+  }
+  return res.status(400).json({ error: 'database not configured' });
 });
 
 // create new order

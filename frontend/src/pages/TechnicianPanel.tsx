@@ -52,9 +52,9 @@ export function TechnicianPanel() {
     fetchOrders();
   }, []);
 
-  const filteredOrders = user.role === "MANAGER" 
-    ? orders 
-    : orders.filter(order => order.techId === user.id);
+  const filteredOrders = user 
+    ? orders.filter(order => order.techId === user.id)
+    : [];
 
   const handleStatusChange = async (id: string, newStatus: Order['status']) => {
     try {
@@ -92,12 +92,12 @@ export function TechnicianPanel() {
         <div>
           <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
             <Wrench className="text-primary" /> 
-            {user.role === "MANAGER" ? "Visão Geral (Todos os Técnicos)" : "Minhas Tarefas"}
+            {user ? "Minhas Tarefas" : "Minhas Tarefas"}
           </h2>
           <p className="text-gray-500 mt-1">
-            {user.role === "MANAGER" 
-              ? "Gerencie as ordens de toda a equipe." 
-              : `Olá, ${user.name}. Gerencie suas ordens de serviço ativas.`}
+            {user 
+              ? `Olá, ${user.name}. Gerencie suas ordens de serviço ativas.`
+              : "Selecione um técnico para ver suas tarefas."}
           </p>
         </div>
       </header>
@@ -118,12 +118,6 @@ export function TechnicianPanel() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredOrders.map((order) => (
             <div key={order.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all relative group">
-              
-              {user.role === "MANAGER" && (
-                 <span className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-wider bg-gray-100 px-2 py-1 rounded text-gray-500">
-                    Técnico ID: {order.techId}
-                 </span>
-              )}
 
               {/* Header do Card */}
               <div className="flex justify-between items-start mb-4">
