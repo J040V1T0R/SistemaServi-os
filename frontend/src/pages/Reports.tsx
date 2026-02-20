@@ -61,6 +61,17 @@ export function Reports() {
         return idText.includes(term) || nameText.includes(term) || dateText.includes(term) || equipText.includes(term);
     });
 
+    const totalBilling = React.useMemo(() => {
+        return orders
+            .filter(o => normalizeStatus(o.status) === 'Concluído')
+            .reduce((sum, o) => {
+                const valueStr = String(o.value || '0').replace(/[R$\s]/g, '').replace(',', '.');
+                const num = parseFloat(valueStr) || 0;
+                return sum + num;
+            }, 0)
+            .toFixed(2);
+    }, [orders]);
+
     const openEdit = (order: any) => {
         setEditingOrder(order);
         setEditForm({
@@ -135,7 +146,7 @@ export function Reports() {
                         </div>
                         <div>
                                 <p className="text-xs text-gray-500 font-bold uppercase">Faturamento (Concluídos)</p>
-                                <p className="text-2xl font-bold text-gray-800">R$ 630,00</p>
+                                <p className="text-2xl font-bold text-gray-800">R$ {totalBilling.replace('.', ',')}</p>
                         </div>
                  </div>
                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">

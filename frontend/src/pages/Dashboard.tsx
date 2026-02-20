@@ -91,18 +91,13 @@ export function Dashboard() {
       <header className="mb-8">
         <h2 className="text-3xl font-bold text-gray-800">Dashboard Operacional</h2>
         <p className="text-gray-500 mt-1">Visão geral do desempenho da assistência técnica.</p>
-        {serverStatus && (
-          <p className="text-sm mt-2">
-            <strong>API status:</strong> {serverStatus}
-          </p>
-        )}
       </header>
 
       {/* Cards de Status */}
       <div className="grid grid-cols-4 gap-6 mb-8">
-        <StatusCard icon={Clock} label="PENDENTES" value={orders.filter(o => o.status === 'Pendente').length.toString()} color="text-orange-500" bg="bg-orange-50" />
-        <StatusCard icon={Activity} label="EM EXECUÇÃO" value={orders.filter(o => o.status === 'Em Andamento').length.toString()} color="text-blue-500" bg="bg-blue-50" />
-        <StatusCard icon={CheckCircle} label="FINALIZADOS" value={orders.filter(o => o.status === 'Concluído' || o.status === 'Concluido').length.toString()} color="text-green-500" bg="bg-green-50" />
+        <StatusCard icon={Clock} label="PENDENTES" value={orders.filter(o => normalizeStatus(o.status) === 'Pendente').length.toString()} color="text-orange-500" bg="bg-orange-50" />
+        <StatusCard icon={Activity} label="EM EXECUÇÃO" value={orders.filter(o => normalizeStatus(o.status) === 'Em Andamento').length.toString()} color="text-blue-500" bg="bg-blue-50" />
+        <StatusCard icon={CheckCircle} label="FINALIZADOS" value={orders.filter(o => normalizeStatus(o.status) === 'Concluído').length.toString()} color="text-green-500" bg="bg-green-50" />
         <StatusCard icon={TrendingUp} label="FATURAMENTO" value={`R$ ${orders.reduce((sum, o) => {
             const num = parseFloat(String(o.value ?? '0').replace(/[R$ ,]/g, '')) || 0;
             return sum + num;
