@@ -74,8 +74,8 @@ async function listOrders() {
                       c.nome AS cliente_nome,
                       e.tipo AS equipamento_tipo, e.marca, e.modelo
                FROM ordem_servico o
-               LEFT JOIN equipamento e ON e.num_serie = o.num_serie_equip
-               LEFT JOIN cliente c ON c.cpf = o.cpf_cliente
+               INNER JOIN equipamento e ON e.num_serie = o.num_serie_equip
+               INNER JOIN cliente c ON c.cpf = o.cpf_cliente
                ORDER BY o.cod_os DESC`;
     try {
       const res = await pool.query(q);
