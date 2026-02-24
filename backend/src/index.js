@@ -245,55 +245,6 @@ async function insertOrder(order) {
   await db.write();
   return order;
 }
-
-async function updateOrder(id, updates) {
-  const normalizeDate = (value) => {
-    if (!value) return null;
-    const v = String(value);
-    return v.length >= 10 ? v.slice(0, 10) : v;
-  };
-
-  if (usePg && pool) {
-    const q = `UPDATE ordem_servico
-               SET status = COALESCE($1, status),
-                   solucao = COALESCE($2, solucao),
-                   valor = COALESCE($3, valor),
-                   data_inicio = COALESCE($4, data_inicio),
-                   data_fim = COALESCE($5, data_fim),
-                   pis_tecnico = COALESCE($6, pis_tecnico)
-               WHERE cod_os = $7
-               RETURNING cod_os`;
-    const values = [
-      updates.status || null,
-      updates.solution || null,
-      updates.value ?? null,
-      normalizeDate(updates.startDate),
-      normalizeDate(updates.endDate),
-      updates.technicianId || null,
-      id,
-    ];
-    const res = await pool.query(q, values);
-    return res.rows[0] ? { id: res.rows[0].cod_os } : null;
-  }
-
-  await db.read();
-  db.data ||= { orders: [], equipments: [], clients: [] };
-  const idx = db.data.orders.findIndex(o => String(o.id) === String(id));
-  if (idx === -1) return null;
-  db.data.orders[idx] = {
-    ...db.data.orders[idx],
-    status: updates.status ?? db.data.orders[idx].status,
-    solution: updates.solution ?? db.data.orders[idx].solution,
-    value: updates.value ?? db.data.orders[idx].value,
-    startDate: updates.startDate ?? db.data.orders[idx].startDate,
-    endDate: updates.endDate ?? db.data.orders[idx].endDate,
-    technicianId: updates.technicianId ?? db.data.orders[idx].technicianId,
-  };
-  await db.write();
-  return { id };
-}
-// --------------------------------------------------------------------
-
 // list all orders
 apiRouter.get('/orders', async (req, res) => {
   try {
@@ -513,23 +464,10 @@ apiRouter.put('/orders/:id', async (req, res) => {
   }
 });
 
-// update order status/fields
-apiRouter.patch('/orders/:id', async (req, res) => {
-  const { id } = req.params;
-  const { status, solution, value, startDate, endDate, technicianId } = req.body;
-  try {
-    const result = await updateOrder(id, { status, solution, value, startDate, endDate, technicianId });
-    if (!result) return res.status(404).json({ error: 'order not found' });
-    res.json({ id, status, solution, value, startDate, endDate, technicianId });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'failed to update order' });
-  }
-});
-
 app.use('/api', apiRouter);
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 
 });
+
